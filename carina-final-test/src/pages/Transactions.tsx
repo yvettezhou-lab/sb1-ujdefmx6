@@ -54,9 +54,21 @@ export function Transactions() {
       {items.length === 0
         ? <div className="empty"><span className="empty-script">The ledger is quiet</span><p>Press + to record your first entry.</p></div>
         : items.map(item => (
-          <div className="ledger-row" key={`${item.kind}-${item.id}`}>
+          <div
+            className="ledger-row"
+            key={`${item.kind}-${item.id}`}
+            role="button"
+            tabIndex={0}
+            onClick={() =>
+              navigate(
+                item.kind === 'transfer'
+                  ? `/transfer/${item.id}`
+                  : `/transactions/${item.id}/edit`
+              )
+            }
+          >
             <div className={`ledger-mark ${item.kind}`}><span>{item.kind === 'transfer' ? '⇄' : item.flow === 'expense' ? '−' : '+'}</span></div>
-            <div className="ledger-copy" onClick={() => item.kind === 'transaction' && navigate(`/transactions/${item.id}/edit`)} role={item.kind === 'transaction' ? 'button' : undefined}>
+            <div className="ledger-copy" >
               <strong>{item.description}</strong>
               <span>{item.kind === 'transfer'
                 ? `${item.account ?? 'Unknown'} → ${item.otherAccount ?? 'Unknown'}`

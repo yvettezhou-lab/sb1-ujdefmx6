@@ -4,7 +4,7 @@ import { BookOpen, Compass, Home, Feather, Sparkles } from 'lucide-react';
 const navItems = [
   { to: '/', label: 'Home', icon: Home },
   { to: '/transactions', label: 'Ledger', icon: BookOpen },
-  { to: '/reflection', label: 'Reflection', icon: Compass },
+  { to: '/reflection', label: 'Reflection', icon: Feather },
   { to: '/settings', label: 'Atelier', icon: Sparkles },
 ];
 
