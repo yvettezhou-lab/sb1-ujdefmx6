@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { BookOpen, Compass, Home, Feather, Sparkles } from 'lucide-react';
+import { BookOpen, Home, Feather, Sparkles } from 'lucide-react';
 
 const navItems = [
   { to: '/', label: 'Home', icon: Home },
