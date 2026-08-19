@@ -34,10 +34,10 @@ function cubicPoint(
 function shaft(t: number): Point {
   return cubicPoint(
     t,
-    P(18, 48),
-    P(18, 41),
-    P(37, 23),
-    P(53, 12),
+    P(11, 53),
+    P(15, 44),
+    P(30, 37),
+    P(53, 14),
   );
 }
 
@@ -58,46 +58,73 @@ function lerp(a: Point, b: Point, amount: number): Point {
   );
 }
 
-function leftFiber(t: number) {
+function makeFiber(
+  t: number,
+  side: 1 | -1,
+  baseLength: number,
+  phase: number,
+) {
   const start = shaft(t);
-  const angle = ((235 + 42 * t) * Math.PI) / 180;
-  const phase = Math.max(0, Math.min(1, (t - 0.12) / 0.88));
-  const length = 8.6 * Math.pow(Math.sin(Math.PI * phase), 0.75);
-  const end = P(
-    start.x + Math.cos(angle) * length,
-    start.y + Math.sin(angle) * length,
-  );
   const tangent = shaftTangent(t);
+  const normal = P(-tangent.y, tangent.x);
+
+  const envelope = Math.pow(
+    Math.sin(Math.PI * t),
+    side === 1 ? 0.58 : 0.68,
+  );
+
+  const variation =
+    0.92 +
+    0.10 * Math.sin(t * Math.PI * 7 + phase) +
+    0.05 * Math.sin(t * Math.PI * 13 + phase * 0.7);
+
+  const length = baseLength * envelope * variation;
+
+  const sweep =
+    0.20 +
+    0.14 * t +
+    0.045 * Math.sin(t * Math.PI * 5 + phase);
+
+  const curl =
+    0.34 * Math.sin(t * Math.PI * 3.5 + phase) +
+    0.10 * Math.sin(t * Math.PI * 7 + phase * 0.6);
+
+  const end = P(
+    start.x + normal.x * side * length - tangent.x * length * sweep,
+    start.y + normal.y * side * length - tangent.y * length * sweep,
+  );
+
   const c1 = P(
-    start.x + (end.x - start.x) * 0.28 - tangent.x * 0.9,
-    start.y + (end.y - start.y) * 0.28 - tangent.y * 0.9,
+    start.x +
+      normal.x * side * length * 0.34 -
+      tangent.x * length * (sweep * 0.35) +
+      normal.x * side * curl,
+    start.y +
+      normal.y * side * length * 0.34 -
+      tangent.y * length * (sweep * 0.35) +
+      normal.y * side * curl,
   );
+
   const c2 = P(
-    start.x + (end.x - start.x) * 0.78 + tangent.x * 0.45,
-    start.y + (end.y - start.y) * 0.78 + tangent.y * 0.45,
+    start.x +
+      (end.x - start.x) * 0.72 -
+      tangent.x * length * 0.02 -
+      normal.x * side * curl,
+    start.y +
+      (end.y - start.y) * 0.72 -
+      tangent.y * length * 0.02 -
+      normal.y * side * curl,
   );
+
   return { start, c1, c2, end };
 }
 
+function leftFiber(t: number) {
+  return makeFiber(t, -1, 18.5, 0.4);
+}
+
 function rightFiber(t: number) {
-  const start = shaft(t);
-  const angle = ((2 + 28 * t) * Math.PI) / 180;
-  const phase = Math.max(0, Math.min(1, (t - 0.10) / 0.90));
-  const length = 11.8 * Math.pow(Math.sin(Math.PI * phase), 0.82);
-  const end = P(
-    start.x + Math.cos(angle) * length,
-    start.y + Math.sin(angle) * length,
-  );
-  const tangent = shaftTangent(t);
-  const c1 = P(
-    start.x + (end.x - start.x) * 0.30 + tangent.x * 0.35,
-    start.y + (end.y - start.y) * 0.30 + tangent.y * 0.35,
-  );
-  const c2 = P(
-    start.x + (end.x - start.x) * 0.78 - tangent.x * 0.25,
-    start.y + (end.y - start.y) * 0.78 - tangent.y * 0.25,
-  );
-  return { start, c1, c2, end };
+  return makeFiber(t, 1, 20.5, 1.7);
 }
 
 function pathFromCubic(
@@ -114,21 +141,29 @@ function pathFromCubic(
   ].join(" ");
 }
 
-function buildBoundary(points: Point[], scallop = 0): string {
+function buildBoundary(
+  points: Point[],
+  scallop = 0,
+): string {
   if (points.length < 2) return "";
+
   let d = `M ${points[0].x.toFixed(2)} ${points[0].y.toFixed(2)}`;
+
   for (let i = 1; i < points.length; i += 1) {
     const a = points[i - 1];
     const b = points[i];
     const mid = lerp(a, b, 0.5);
+
     const control = P(
       mid.x,
       mid.y + scallop * (i % 2 === 0 ? 1 : -1),
     );
+
     d +=
       ` Q ${control.x.toFixed(2)} ${control.y.toFixed(2)}` +
       ` ${b.x.toFixed(2)} ${b.y.toFixed(2)}`;
   }
+
   return d;
 }
 
@@ -138,12 +173,27 @@ export function QuillIcon({
   className = "",
 }: QuillIconProps) {
   const scale = strokeWidth / 1.65;
-  const leftTs = [0.16, 0.25, 0.34, 0.43, 0.52, 0.61, 0.70, 0.78];
-  const rightTs = [0.20, 0.31, 0.42, 0.53, 0.64, 0.74, 0.84];
+
+  const leftTs = [
+    0.11, 0.19, 0.27, 0.35, 0.43, 0.51,
+    0.59, 0.67, 0.74, 0.81, 0.88, 0.93,
+  ];
+
+  const rightTs = [
+    0.12, 0.20, 0.28, 0.36, 0.44, 0.52,
+    0.60, 0.68, 0.75, 0.82, 0.89, 0.94,
+  ];
+
   const leftFibers = leftTs.map(leftFiber);
   const rightFibers = rightTs.map(rightFiber);
-  const leftBoundary = leftFibers.map((fiber) => fiber.end);
-  const rightBoundary = rightFibers.map((fiber) => fiber.end);
+
+  const leftBoundary = leftFibers.map(
+    (fiber) => fiber.end,
+  );
+
+  const rightBoundary = rightFibers.map(
+    (fiber) => fiber.end,
+  );
 
   return (
     <svg
@@ -156,53 +206,80 @@ export function QuillIcon({
       aria-hidden="true"
     >
       <path
-        d="M 18 48 C 18 41 37 23 53 12"
+        d="M 11 53 C 15 44 30 37 53 14"
         stroke="currentColor"
-        strokeWidth={1 * scale}
+        strokeWidth={0.70 * scale}
         strokeLinecap="round"
       />
+
       {leftFibers.map((fiber, index) => (
         <path
           key={`left-${index}`}
-          d={pathFromCubic(fiber.start, fiber.c1, fiber.c2, fiber.end)}
+          d={pathFromCubic(
+            fiber.start,
+            fiber.c1,
+            fiber.c2,
+            fiber.end,
+          )}
           stroke="currentColor"
           strokeWidth={0.52 * scale}
           strokeLinecap="round"
-          opacity="0.94"
+          opacity="0.92"
         />
       ))}
+
       {rightFibers.map((fiber, index) => (
         <path
           key={`right-${index}`}
-          d={pathFromCubic(fiber.start, fiber.c1, fiber.c2, fiber.end)}
+          d={pathFromCubic(
+            fiber.start,
+            fiber.c1,
+            fiber.c2,
+            fiber.end,
+          )}
           stroke="currentColor"
           strokeWidth={0.52 * scale}
           strokeLinecap="round"
-          opacity="0.94"
+          opacity="0.92"
         />
       ))}
+
       <path
-        d={buildBoundary(leftBoundary, 0.18)}
+        d={buildBoundary(leftBoundary, 0.26)}
         stroke="currentColor"
-        strokeWidth={0.40 * scale}
+        strokeWidth={0.28 * scale}
         strokeLinecap="round"
-        opacity="0.68"
+        opacity="0.40"
       />
+
       <path
-        d={buildBoundary(rightBoundary, 0.42)}
+        d={buildBoundary(rightBoundary, 0.32)}
         stroke="currentColor"
-        strokeWidth={0.46 * scale}
+        strokeWidth={0.30 * scale}
         strokeLinecap="round"
-        opacity="0.78"
+        opacity="0.46"
       />
+
       <path
-        d="M 18 48 C 16 50 14 52.5 13.2 55"
+        d="M 11 53 C 8 55 6.5 57.8 6.2 60.5"
         stroke="currentColor"
-        strokeWidth={0.95 * scale}
+        strokeWidth={0.76 * scale}
         strokeLinecap="round"
       />
-      <circle cx="11.4" cy="57" r="0.8" fill="currentColor" />
-      <circle cx="15" cy="55" r="0.38" fill="currentColor" />
+
+      <circle
+        cx="5.5"
+        cy="61.2"
+        r="0.48"
+        fill="currentColor"
+      />
+
+      <circle
+        cx="8"
+        cy="58.8"
+        r="0.25"
+        fill="currentColor"
+      />
     </svg>
   );
 }
