@@ -102,7 +102,25 @@ export function Reflection() {
       <div className="paper-panel reflection-analysis">
         <div className="panel-kicker">{mode === 'category' ? 'WHERE YOUR LIFE FLOWS' : mode === 'account' ? 'WHERE MONEY MOVES' : 'THE LAST SIX MONTHS'}</div>
         <h2>{mode === 'category' ? 'Spending by category' : mode === 'account' ? 'Spending by account' : 'Money in motion'}</h2>
-        <ReflectionChart mode={mode} chartType={chartType} data={currentList as never} selectedId={selectedId} onSelect={selectChart} onToggleChart={toggleChartType} />
+        {mode === 'trend' ? (
+          <ReflectionChart
+            mode="trend"
+            chartType="bar"
+            data={currentList as any}
+            selectedId={selectedId}
+            onSelect={selectChart}
+            onToggleChart={toggleChartType}
+          />
+        ) : (
+          <ReflectionChart
+            mode={mode}
+            chartType={chartType}
+            data={currentList as any}
+            selectedId={selectedId}
+            onSelect={selectChart}
+            onToggleChart={toggleChartType}
+          />
+        )}
 
         {selectedId && selectedTransactions.length > 0 && (
           <div className="reflection-drilldown">

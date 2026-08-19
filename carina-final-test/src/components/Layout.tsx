@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { BookOpen, Home, Sparkles } from 'lucide-react';
-import { QuillIcon } from '@/components/QuillIcon';
+import QuillIcon from '@/components/QuillIcon';
 
 const navItems = [
   { to: '/', label: 'Home', icon: Home },
