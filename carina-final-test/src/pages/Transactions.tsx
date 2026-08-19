@@ -54,21 +54,15 @@ export function Transactions() {
       {items.length === 0
         ? <div className="empty"><span className="empty-script">The ledger is quiet</span><p>Press + to record your first entry.</p></div>
         : items.map(item => (
-          <div
-            className="ledger-row"
-            key={`${item.kind}-${item.id}`}
-            role="button"
-            tabIndex={0}
-            onClick={() =>
-              navigate(
-                item.kind === 'transfer'
-                  ? `/transfer/${item.id}`
-                  : `/transactions/${item.id}/edit`
-              )
-            }
-          >
+          <div className="ledger-row" key={`${item.kind}-${item.id}`}>
+            <button
+              type="button"
+              className="ledger-row-hit"
+              aria-label={`Edit ${item.kind === 'transfer' ? 'transfer' : 'transaction'} ${item.description}`}
+              onClick={() => navigate(item.kind === 'transfer' ? `/transfer/${item.id}` : `/transactions/${item.id}/edit`)}
+            />
             <div className={`ledger-mark ${item.kind}`}><span>{item.kind === 'transfer' ? '⇄' : item.flow === 'expense' ? '−' : '+'}</span></div>
-            <div className="ledger-copy" >
+            <div className="ledger-copy">
               <strong>{item.description}</strong>
               <span>{item.kind === 'transfer'
                 ? `${item.account ?? 'Unknown'} → ${item.otherAccount ?? 'Unknown'}`
@@ -77,7 +71,12 @@ export function Transactions() {
             <div className="ledger-right">
               <b className={item.kind === 'transfer' ? 'transfer-amount' : item.flow}>{item.kind === 'transfer' ? '⇄ ' : item.flow === 'expense' ? '− ' : '+ '}¥{item.amount.toFixed(2)}</b>
               <small>{new Date(item.dateTime).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</small>
-              <button className="mini-delete" aria-label="Delete" onClick={()=>remove(item)}><Trash2 size={13}/></button>
+              <button
+                type="button"
+                className="mini-delete"
+                aria-label="Delete"
+                onClick={e => { e.stopPropagation(); remove(item); }}
+              ><Trash2 size={13}/></button>
             </div>
           </div>
         ))}

@@ -115,3 +115,14 @@ export function filterReflectionTransactions(
   const current = monthTransactions(transactions, year, month).filter((t) => t.flow === 'expense');
   return current.filter((t) => t[mode === 'category' ? 'categoryId' : 'accountId'] === id);
 }
+
+export function filterReflectionTrendTransactions(
+  transactions: Transaction[],
+  id: string,
+) {
+  const [yearText, monthText] = id.split('-');
+  const year = Number(yearText);
+  const month = Number(monthText);
+  if (!Number.isInteger(year) || !Number.isInteger(month)) return [];
+  return monthTransactions(transactions, year, month).filter((t) => t.flow === 'income' || t.flow === 'expense');
+}

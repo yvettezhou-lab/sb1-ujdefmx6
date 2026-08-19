@@ -1,10 +1,11 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { BookOpen, Home, Feather, Sparkles } from 'lucide-react';
+import { BookOpen, Home, Sparkles } from 'lucide-react';
+import { QuillIcon } from '@/components/QuillIcon';
 
 const navItems = [
   { to: '/', label: 'Home', icon: Home },
   { to: '/transactions', label: 'Ledger', icon: BookOpen },
-  { to: '/reflection', label: 'Reflection', icon: Feather },
+  { to: '/reflection', label: 'Reflection', icon: QuillIcon },
   { to: '/settings', label: 'Atelier', icon: Sparkles },
 ];
 
@@ -14,7 +15,7 @@ export function Layout() {
     <div className="app-shell">
       <main className="page"><Outlet /></main>
       <button className="fab" aria-label="Record a transaction" title="Record" onClick={() => navigate('/quick-entry')}>
-        <Feather size={23} strokeWidth={1.65} />
+        <QuillIcon size={23} strokeWidth={1.65} />
       </button>
       <nav className="bottom-nav" aria-label="Main navigation">
         {navItems.map(({to,label,icon:Icon}) => (

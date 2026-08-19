@@ -1,10 +1,10 @@
 import type { ReflectionBreakdown, ReflectionTrendPoint } from '@/services/statistics';
 
 type Props =
-  | { mode: 'category' | 'account'; data: ReflectionBreakdown[]; selectedId?: string; onSelect: (id: string) => void }
-  | { mode: 'trend'; data: ReflectionTrendPoint[]; selectedId?: string; onSelect: (id: string) => void };
+  | { mode: 'category' | 'account'; chartType: 'donut' | 'bar'; data: ReflectionBreakdown[]; selectedId?: string; onSelect: (id: string) => void; onToggleChart: () => void }
+  | { mode: 'trend'; chartType: 'bar'; data: ReflectionTrendPoint[]; selectedId?: string; onSelect: (id: string) => void; onToggleChart: () => void };
 
-function Donut({ data, selectedId, onSelect }: { data: ReflectionBreakdown[]; selectedId?: string; onSelect: (id: string) => void }) {
+function Donut({ data, selectedId, onSelect, onToggleChart }: { data: ReflectionBreakdown[]; selectedId?: string; onSelect: (id: string) => void; onToggleChart: () => void }) {
   const top = data.slice(0, 6);
   const total = top.reduce((sum, item) => sum + item.amount, 0);
   let cursor = 0;
@@ -19,12 +19,12 @@ function Donut({ data, selectedId, onSelect }: { data: ReflectionBreakdown[]; se
 
   return (
     <div className="reflection-donut-layout">
-      <div className="reflection-donut" style={{ background }} aria-label="Spending distribution">
+      <button type="button" className="reflection-donut reflection-chart-clickable" style={{ background }} aria-label="Spending distribution. Tap to switch to bar chart" onClick={onToggleChart}>
         <div className="reflection-donut-hole">
           <small>Total</small>
           <strong>¥{data.reduce((sum, item) => sum + item.amount, 0).toFixed(0)}</strong>
         </div>
-      </div>
+      </button>
       <div className="reflection-breakdown-list">
         {data.length === 0 ? (
           <div className="empty"><span className="empty-script">A quiet month</span><p>No spending recorded yet.</p></div>
@@ -35,6 +35,34 @@ function Donut({ data, selectedId, onSelect }: { data: ReflectionBreakdown[]; se
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function BarBreakdown({ data, selectedId, onSelect, onToggleChart }: { data: ReflectionBreakdown[]; selectedId?: string; onSelect: (id: string) => void; onToggleChart: () => void }) {
+  const top = data.slice(0, 8);
+  const max = Math.max(1, ...top.map((item) => item.amount));
+  return (
+    <div className="reflection-bar-chart" role="button" tabIndex={0}
+      onClick={onToggleChart}
+      onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') onToggleChart(); }}
+      aria-label="Spending bar chart. Tap to switch to donut chart">
+      {top.length === 0 ? (
+        <div className="empty"><span className="empty-script">A quiet month</span><small>No spending recorded yet.</small></div>
+      ) : top.map((item) => (
+        <button type="button" className={`reflection-bar-row ${selectedId === item.id ? 'selected' : ''}`} key={item.id}
+          onClick={(event) => { event.stopPropagation(); onSelect(item.id); }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.stopPropagation();
+              if (event.key === ' ') event.preventDefault();
+            }
+          }}>
+          <span className="reflection-bar-label">{item.name}</span>
+          <span className="reflection-bar-track"><i style={{ width: `${Math.max(2, item.amount / max * 100)}%` }} /></span>
+          <strong>¥{item.amount.toFixed(2)}</strong>
+        </button>
+      ))}
     </div>
   );
 }
@@ -60,6 +88,7 @@ function Trend({ data, selectedId, onSelect }: { data: ReflectionTrendPoint[]; s
 }
 
 export function ReflectionChart(props: Props) {
-  if (props.mode === 'trend') return <Trend {...props} />;
-  return <Donut {...props} />;
+  if (props.mode === 'trend') return <Trend data={props.data} selectedId={props.selectedId} onSelect={props.onSelect} />;
+  if (props.chartType === 'bar') return <BarBreakdown data={props.data} selectedId={props.selectedId} onSelect={props.onSelect} onToggleChart={props.onToggleChart} />;
+  return <Donut data={props.data} selectedId={props.selectedId} onSelect={props.onSelect} onToggleChart={props.onToggleChart} />;
 }

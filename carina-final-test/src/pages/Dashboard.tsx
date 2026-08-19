@@ -1,6 +1,6 @@
 import { calculateNetWorth } from '@/services/netWorth';
 import { useEffect, useState } from 'react';
-import { ArrowRight, Landmark, WalletCards, Banknote, CreditCard, Plus, ArrowLeftRight, Feather } from 'lucide-react';
+import { ArrowRight, Landmark, WalletCards, Banknote, CreditCard, Plus, ArrowLeftRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '@/database/db';
 import { getAccountBalance } from '@/services/balance';
@@ -18,7 +18,7 @@ export function Dashboard() {
       const active = await db.accounts.filter(v => !v.isArchived).sortBy('sortOrder');
       const withBalances = await Promise.all(active.map(async a => ({ ...a, balance: await getAccountBalance(a) })));
       setAccounts(withBalances);
-      setNetWorth(withBalances.filter(a => a.includeInNetWorth).reduce((sum, a) => sum + a.balance, 0));
+      setNetWorth(calculateNetWorth(withBalances));
     })();
   }, []);
 
@@ -26,7 +26,7 @@ export function Dashboard() {
     <section>
       <header className="hero-head">
         <div>
-          <div className="brand-lockup"><Feather size={17} strokeWidth={1.5}/><div className="brand-script">Carina</div></div>
+          <div className="brand-lockup"><div className="brand-script">Carina</div></div>
           <div className="brand-subtitle">PERSONAL LEDGER</div>
         </div>
         <div className="date-stamp">{new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</div>

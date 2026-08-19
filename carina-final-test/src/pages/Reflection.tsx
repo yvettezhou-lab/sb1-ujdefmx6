@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '@/database/db';
 import type { Account, Category, Transaction } from '@/models';
-import { buildReflectionData, filterReflectionTransactions, type ReflectionMode } from '@/services/statistics';
+import { buildReflectionData, filterReflectionTransactions, filterReflectionTrendTransactions, type ReflectionMode } from '@/services/statistics';
 import { ReflectionChart } from '@/components/ReflectionChart';
 
 export function Reflection() {
@@ -15,6 +15,8 @@ export function Reflection() {
   const [month, setMonth] = useState(now.getMonth());
   const [mode, setMode] = useState<ReflectionMode>('category');
   const [selectedId, setSelectedId] = useState<string>();
+  const [chartType, setChartType] = useState<'donut' | 'bar'>('donut');
+  const [showAllDrillDown, setShowAllDrillDown] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -25,12 +27,6 @@ export function Reflection() {
       setAccounts(accts);
     });
 
-  const handleTrendDrillDown = (month: string) => {
-    if (!month) return;
-    // Keep the selected month as the drill-down target.
-    // The existing transaction list/navigation should consume this selection.
-    setSelectedId(month);
-  };
 
     return () => { alive = false; };
   }, []);
@@ -44,7 +40,8 @@ export function Reflection() {
   const currentList = mode === 'category' ? data.category : mode === 'account' ? data.account : data.trend;
 
   const selectedTransactions = useMemo(() => {
-    if (!selectedId || mode === 'trend') return [];
+    if (!selectedId) return [];
+    if (mode === 'trend') return filterReflectionTrendTransactions(transactions, selectedId);
     return filterReflectionTransactions(transactions, year, month, mode, selectedId);
   }, [transactions, year, month, mode, selectedId]);
 
@@ -53,15 +50,26 @@ export function Reflection() {
     setYear(d.getFullYear());
     setMonth(d.getMonth());
     setSelectedId(undefined);
+    setShowAllDrillDown(false);
   }
 
   function selectMode(next: ReflectionMode) {
     setMode(next);
     setSelectedId(undefined);
+    setShowAllDrillDown(false);
+    if (next === 'trend') setChartType('bar');
+  }
+
+  function toggleChartType() {
+    if (mode === 'trend') return;
+    setChartType((current) => current === 'donut' ? 'bar' : 'donut');
+    setSelectedId(undefined);
+    setShowAllDrillDown(false);
   }
 
   function selectChart(id: string) {
     setSelectedId((current) => current === id ? undefined : id);
+    setShowAllDrillDown(false);
   }
 
   const selectedName = selectedId
@@ -94,20 +102,38 @@ export function Reflection() {
       <div className="paper-panel reflection-analysis">
         <div className="panel-kicker">{mode === 'category' ? 'WHERE YOUR LIFE FLOWS' : mode === 'account' ? 'WHERE MONEY MOVES' : 'THE LAST SIX MONTHS'}</div>
         <h2>{mode === 'category' ? 'Spending by category' : mode === 'account' ? 'Spending by account' : 'Money in motion'}</h2>
-        <ReflectionChart mode={mode} data={currentList as never} selectedId={selectedId} onSelect={selectChart} />
+        <ReflectionChart mode={mode} chartType={chartType} data={currentList as never} selectedId={selectedId} onSelect={selectChart} onToggleChart={toggleChartType} />
 
-        {selectedId && mode !== 'trend' && selectedTransactions.length > 0 && (
+        {selectedId && selectedTransactions.length > 0 && (
           <div className="reflection-drilldown">
-            <div className="reflection-drilldown-head"><div><span className="panel-kicker">DRILL DOWN</span><strong>{selectedName}</strong></div><span>¥{selectedTransactions.reduce((sum, t) => sum + t.amount, 0).toFixed(2)}</span></div>
-            {selectedTransactions.slice(0, 6).map((transaction) => (
+            {mode === 'trend' ? (
+              <div className="reflection-drilldown-head">
+                <div>
+                  <span className="panel-kicker">DRILL DOWN</span>
+                  <strong>{selectedName}</strong>
+                </div>
+                <span>
+                  <b className="positive">+¥{Math.abs(selectedTransactions.filter((t) => t.flow === 'income').reduce((sum, t) => sum + t.amount, 0)).toFixed(2)}</b>{' '}
+                  <b>−¥{selectedTransactions.filter((t) => t.flow === 'expense').reduce((sum, t) => sum + t.amount, 0).toFixed(2)}</b>
+                </span>
+              </div>
+            ) : (
+              <div className="reflection-drilldown-head"><div><span className="panel-kicker">DRILL DOWN</span><strong>{selectedName}</strong></div><span>¥{selectedTransactions.reduce((sum, t) => sum + t.amount, 0).toFixed(2)}</span></div>
+            )}
+            {(showAllDrillDown ? selectedTransactions : selectedTransactions.slice(0, 6)).map((transaction) => (
               <button className="reflection-transaction" key={transaction.id} onClick={() => navigate(`/transactions/${transaction.id}/edit`)}>
                 <span><strong>{transaction.description || 'Untitled'}</strong><small>{new Date(transaction.dateTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</small></span>
                 <b>¥{transaction.amount.toFixed(2)}</b>
               </button>
             ))}
+            {selectedTransactions.length > 6 && (
+              <button type="button" className="reflection-drilldown-toggle" onClick={() => setShowAllDrillDown((current) => !current)}>
+                {showAllDrillDown ? 'Show less' : `View all ${selectedTransactions.length}`}
+              </button>
+            )}
           </div>
         )}
-        {selectedId && mode !== 'trend' && selectedTransactions.length === 0 && <div className="reflection-selection-note">No expense records in this selection.</div>}
+        {selectedId && selectedTransactions.length === 0 && <div className="reflection-selection-note">No records in this selection.</div>}
       </div>
 
       <div className="reflection-note">
@@ -117,11 +143,3 @@ export function Reflection() {
     </section>
   );
 }
-
-
-// Trend drill-down contract: a selected month is the navigation filter.
-// Consumers can use this value to open the corresponding transaction list.
-export const trendDrillDown = (month: string) => ({
-  kind: 'trend-month',
-  month,
-});
