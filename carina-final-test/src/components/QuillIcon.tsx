@@ -1,5 +1,4 @@
 type QuillIconProps = {
-import feather from "../assets/feather.png";
   size?: number;
   strokeWidth?: number;
   className?: string;
@@ -197,14 +196,91 @@ export function QuillIcon({
   );
 
   return (
-    <img
-      src={feather}
+    <svg
       width={size}
       height={size}
+      viewBox="0 0 64 64"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-hidden="true"
-      alt=""
-    />
+    >
+      <path
+        d="M 11 53 C 15 44 30 37 53 14"
+        stroke="currentColor"
+        strokeWidth={0.70 * scale}
+        strokeLinecap="round"
+      />
+
+      {leftFibers.map((fiber, index) => (
+        <path
+          key={`left-${index}`}
+          d={pathFromCubic(
+            fiber.start,
+            fiber.c1,
+            fiber.c2,
+            fiber.end,
+          )}
+          stroke="currentColor"
+          strokeWidth={0.52 * scale}
+          strokeLinecap="round"
+          opacity="0.92"
+        />
+      ))}
+
+      {rightFibers.map((fiber, index) => (
+        <path
+          key={`right-${index}`}
+          d={pathFromCubic(
+            fiber.start,
+            fiber.c1,
+            fiber.c2,
+            fiber.end,
+          )}
+          stroke="currentColor"
+          strokeWidth={0.52 * scale}
+          strokeLinecap="round"
+          opacity="0.92"
+        />
+      ))}
+
+      <path
+        d={buildBoundary(leftBoundary, 0.26)}
+        stroke="currentColor"
+        strokeWidth={0.28 * scale}
+        strokeLinecap="round"
+        opacity="0.40"
+      />
+
+      <path
+        d={buildBoundary(rightBoundary, 0.32)}
+        stroke="currentColor"
+        strokeWidth={0.30 * scale}
+        strokeLinecap="round"
+        opacity="0.46"
+      />
+
+      <path
+        d="M 11 53 C 8 55 6.5 57.8 6.2 60.5"
+        stroke="currentColor"
+        strokeWidth={0.76 * scale}
+        strokeLinecap="round"
+      />
+
+      <circle
+        cx="5.5"
+        cy="61.2"
+        r="0.48"
+        fill="currentColor"
+      />
+
+      <circle
+        cx="8"
+        cy="58.8"
+        r="0.25"
+        fill="currentColor"
+      />
+    </svg>
   );
 }
 
