@@ -59,7 +59,7 @@ function BarBreakdown({ data, selectedId, onSelect, onToggleChart }: { data: Ref
             }
           }}>
           <span className="reflection-bar-label">{item.name}</span>
-          <span className="reflection-bar-track"><i style={{ width: `${Math.max(2, item.amount / max * 100)}%` }} /></span>
+          <span className="reflection-bar-track"><i onClick={(e) => { e.stopPropagation(); onToggleChart(); }} style={{ width: `${Math.max(2, item.amount / max * 100)}%` }} /></span>
           <strong>¥{item.amount.toFixed(2)}</strong>
         </button>
       ))}
