@@ -11,6 +11,11 @@ export function Settings() {
   const [categories,setCategories]=useState<Category[]>([]);
   const [people,setPeople]=useState<Person[]>([]);
   const fileRef=useRef<HTMLInputElement>(null);
+    const [editOpeningBalance,setEditOpeningBalance]=useState('0');
+    const [accountEditorMode,setAccountEditorMode]=useState<'add'|'edit'|null>(null);
+    const [editingAccount,setEditingAccount]=useState<(Account & { balance:number }) | null>(null);
+    const [editName,setEditName]=useState('');
+    const [editIncludeInNetWorth,setEditIncludeInNetWorth]=useState(true);
 
   async function refresh(){
     const active = await db.accounts.filter(x=>!x.isArchived).sortBy('sortOrder');
@@ -20,91 +25,78 @@ export function Settings() {
   }
   useEffect(()=>{refresh()},[]);
 
-  async function addAccount(){
-    const name=prompt('Account name');
-    if(!name?.trim()) return;
+  function openAddAccount(){
+    setEditingAccount(null);
+    setEditName('');
+    setEditOpeningBalance('0');
+    setEditIncludeInNetWorth(true);
+    setAccountEditorMode('add');
+}
 
-    const opening=prompt('Opening balance (optional)','0');
-    const openingBalance=opening?.trim() ? Number(opening) : 0;
+function openEditAccount(account: Account & { balance:number }){
+    setEditingAccount(account);
+    setEditName(account.name);
+    setEditOpeningBalance(String(account.openingBalance ?? 0));
+    setEditIncludeInNetWorth(account.includeInNetWorth);
+    setAccountEditorMode('edit');
+}
+
+async function saveAccountEditor(){
+    const name=editName.trim();
+
+    if(!name) return;
+
+    const openingBalance=
+        editOpeningBalance.trim()==='' ? 0 : Number(editOpeningBalance);
+
     if(!Number.isFinite(openingBalance)){
-      alert('Opening balance must be a number.');
-      return;
+        alert('Opening balance must be a number.');
+        return;
     }
 
-    const includeInNetWorth=confirm(
-      'Include this account in net assets?\n\nOK = include in net assets\nCancel = spending-only account (e.g. credit card)'
-    );
-
-    const kindInput=prompt(
-      'Account type: card / bank / cash / wallet / other',
-      'other'
-    );
-    const kind=(kindInput?.trim() || 'other') as Account['kind'];
-
-    await db.accounts.add({
-      id:uid(),
-      name:name.trim(),
-      currency:'CNY',
-      kind,
-      openingBalance,
-      includeInNetWorth,
-      sortOrder:Date.now(),
-      isArchived:false
-    });
-
-    await refresh();
-  }
-
-  async function editOpeningBalance(account: Account & { balance:number }){
-    const value=prompt(
-      `Opening balance for ${account.name}`,
-      String(account.openingBalance)
-    );
-    if(value===null) return;
-
-    const openingBalance=Number(value);
-    if(!Number.isFinite(openingBalance)){
-      alert('Opening balance must be a number.');
-      return;
+    if(accountEditorMode==='add'){
+        await db.accounts.add({
+            id:uid(),
+            name,
+            currency:'CNY',
+            kind:'other',
+            openingBalance,
+            includeInNetWorth:editIncludeInNetWorth,
+            sortOrder:Date.now(),
+            isArchived:false
+        });
     }
 
-    await db.accounts.update(account.id,{openingBalance});
+    if(accountEditorMode==='edit' && editingAccount){
+        await db.accounts.update(editingAccount.id,{
+            name,
+            openingBalance,
+            includeInNetWorth:editIncludeInNetWorth
+        });
+    }
+
+    setAccountEditorMode(null);
+    setEditingAccount(null);
     await refresh();
-  }
+}
 
-  async function editAccount(account: Account & { balance:number }){
-    const name=prompt('Account name',account.name);
-    if(name===null || !name.trim()) return;
-
-    const includeInNetWorth=confirm(
-      `Include "${name.trim()}" in net assets?\n\nOK = yes\nCancel = spending-only account`
-    );
-
-    const kindInput=prompt(
-      'Account type: card / bank / cash / wallet / other',
-      account.kind || 'other'
-    );
-    const kind=kindInput?.trim() || account.kind || 'other';
-
-    await db.accounts.update(account.id,{
-      name:name.trim(),
-        kind: kind as Account['kind'],
-      includeInNetWorth
-    });
-
-    await refresh();
-  }
-
-  async function deleteAccount(account: Account){
+async function deleteAccountEditor(account: Account){
     const confirmed=confirm(
-      `Delete account "${account.name}"?\n\nHistorical transactions will NOT be deleted.`
+        `Delete account "${account.name}"?\n\nHistorical transactions will NOT be deleted.`
     );
+
     if(!confirmed) return;
 
-    await db.accounts.update(account.id,{isArchived:true});
+    await db.accounts.update(account.id,{
+        isArchived:true
+    });
+
+    setAccountEditorMode(null);
+    setEditingAccount(null);
     await refresh();
-  }
-  async function addCategory(){
+}
+
+async function addCategory(){
     const name=prompt('Expense category name');
     if(name?.trim()) { await db.categories.add({id:uid(),name:name.trim(),flow:'expense',sortOrder:Date.now(),isArchived:false}); refresh(); }
   }
@@ -118,7 +110,204 @@ export function Settings() {
   }
   async function restore(file:File){ await importBackup(await file.text()); await refresh(); if(fileRef.current) fileRef.current.value=''; alert('Restore complete'); }
 
-  return <section>
+  
+    if(accountEditorMode){
+      return (
+        <section>
+          <header className="hero-head inner-head">
+            <div>
+              <div className="script-title">Atelier</div>
+              <div className="brand-subtitle">YOUR PRIVATE WORKSHOP</div>
+            </div>
+          </header>
+
+          <div className="settings-intro">
+            Shape the ledger to fit your life.
+          </div>
+
+          <div className="atelier-section">
+            <div className="atelier-title">
+              <Wallet size={17}/>
+              <div>
+                <span>
+                  {accountEditorMode==='add' ? 'ADD ACCOUNT' : 'EDIT ACCOUNT'}
+                </span>
+                <small>
+                  {accountEditorMode==='add'
+                    ? 'Create a new place for your money'
+                    : 'Edit this account'}
+                </small>
+              </div>
+            </div>
+
+            <div style={{paddingTop:"10px"}}>
+
+              <label style={{
+                display:"block",
+                marginBottom:"20px"
+              }}>
+                <span style={{
+                  display:"block",
+                  fontSize:"12px",
+                  marginBottom:"7px",
+                  opacity:.7
+                }}>
+                  Account name
+                </span>
+
+                <input
+                  autoFocus
+                  value={editName}
+                  onChange={e=>setEditName(e.target.value)}
+                  style={{
+                    width:"100%",
+                    boxSizing:"border-box",
+                    padding:"12px 13px",
+                    border:"1px solid rgba(100,80,55,.28)",
+                    background:"transparent",
+                    color:"inherit",
+                    font:"inherit",
+                    outline:"none"
+                  }}
+                />
+              </label>
+
+              <label style={{
+                display:"block",
+                marginBottom:"20px"
+              }}>
+                <span style={{
+                  display:"block",
+                  fontSize:"12px",
+                  marginBottom:"7px",
+                  opacity:.7
+                }}>
+                  Opening balance
+                </span>
+
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  value={editOpeningBalance}
+                  onChange={e=>setEditOpeningBalance(e.target.value)}
+                  style={{
+                    width:"100%",
+                    boxSizing:"border-box",
+                    padding:"12px 13px",
+                    border:"1px solid rgba(100,80,55,.28)",
+                    background:"transparent",
+                    color:"inherit",
+                    font:"inherit",
+                    outline:"none"
+                  }}
+                />
+              </label>
+
+              <label style={{
+                display:"flex",
+                alignItems:"center",
+                gap:"10px",
+                marginBottom:"28px",
+                cursor:"pointer",
+                fontSize:"13px"
+              }}>
+                <span
+  onClick={()=>setEditIncludeInNetWorth(!editIncludeInNetWorth)}
+  style={{
+    width:"18px",
+    height:"18px",
+    border:"1px solid rgba(120,100,70,.5)",
+    borderRadius:"3px",
+    display:"inline-flex",
+    alignItems:"center",
+    justifyContent:"center",
+    cursor:"pointer",
+    background:editIncludeInNetWorth ? "#78613f" : "transparent",
+    color:"white",
+    fontSize:"14px",
+    lineHeight:"18px"
+  }}
+>
+  {editIncludeInNetWorth ? "✓" : ""}
+</span>
+                <span>Include in net assets</span>
+              </label>
+
+              <div style={{
+                display:"flex",
+                justifyContent:"flex-end",
+                gap:"18px",
+                paddingTop:"18px",
+                borderTop:"1px solid rgba(120,100,70,.14)"
+              }}>
+                <button
+                  type="button"
+                  onClick={()=>{
+                    setAccountEditorMode(null);
+                    setEditingAccount(null);
+                  }}
+                  style={{
+                    border:0,
+                    background:"transparent",
+                    color:"inherit",
+                    font:"inherit",
+                    cursor:"pointer",
+                    padding:"9px 4px",
+                    opacity:.7
+                  }}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={saveAccountEditor}
+                  disabled={!editName.trim()}
+                  style={{
+                    border:"1px solid rgba(100,80,55,.35)",
+                    background:"transparent",
+                    color:"inherit",
+                    font:"inherit",
+                    cursor:"pointer",
+                    padding:"9px 20px",
+                    opacity:editName.trim()?1:.45
+                  }}
+                >
+                  Save
+                </button>
+              </div>
+
+              {accountEditorMode==='edit' && editingAccount && (
+                <div style={{
+                  marginTop:"34px",
+                  paddingTop:"22px",
+                  borderTop:"1px solid rgba(155,55,45,.20)"
+                }}>
+                  <button
+                    type="button"
+                    onClick={()=>deleteAccountEditor(editingAccount)}
+                    style={{
+                      border:0,
+                      background:"transparent",
+                      color:"#a33b31",
+                      font:"inherit",
+                      fontSize:"13px",
+                      cursor:"pointer",
+                      padding:"8px 0"
+                    }}
+                  >
+                    Delete account
+                  </button>
+                </div>
+              )}
+
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+return <section>
     <header className="hero-head inner-head">
       <div><div className="script-title">Atelier</div><div className="brand-subtitle">YOUR PRIVATE WORKSHOP</div></div>
     </header>
@@ -127,32 +316,73 @@ export function Settings() {
 
     <div className="atelier-section">
       <div className="atelier-title"><Wallet size={17}/><div><span>ACCOUNTS</span><small>Where your money lives</small></div></div>
-      {accounts.map(x=>
-              <div className="account-edit-row" style={{display:"flex",alignItems:"center",width:"100%"}} key={x.id}>
+      {accounts.map(x=>(
+              <div
+                key={x.id}
+                className="atelier-row"
+                style={{
+                  display:"flex",
+                  alignItems:"center",
+                  width:"100%",
+                  minHeight:"64px",
+                  padding:"14px 0",
+                  borderBottom:"1px solid rgba(120,100,70,.14)",
+                  background:"transparent"
+                }}
+              >
+                <div style={{
+                  flex:1,
+                  minWidth:0
+                }}>
+                  <strong>{x.name}</strong>
+
+                  <small style={{
+                    display:"block",
+                    marginTop:"4px",
+                    opacity:.55
+                  }}>
+                    {x.currency} · Opening ¥{x.openingBalance.toLocaleString('en-US',{
+                      minimumFractionDigits:2,
+                      maximumFractionDigits:2
+                    })}
+                    {" · "}
+                    {x.includeInNetWorth ? "Net assets" : "Spending only"}
+                  </small>
+                </div>
+
+                <em style={{
+                  marginLeft:"16px",
+                  flexShrink:0,
+                  fontStyle:"normal"
+                }}>
+                  {x.balance.toLocaleString('en-US',{
+                    minimumFractionDigits:2,
+                    maximumFractionDigits:2
+                  })}
+                </em>
+
                 <button
-                  className="atelier-row account-row"
-                  onClick={()=>editAccount(x)}
+                  type="button"
+                  onClick={()=>openEditAccount(x)}
+                  style={{
+                    marginLeft:"20px",
+                    flexShrink:0,
+                    border:0,
+                    background:"transparent",
+                    color:"inherit",
+                    font:"inherit",
+                    fontSize:"12px",
+                    opacity:.58,
+                    cursor:"pointer",
+                    padding:"8px 0"
+                  }}
                 >
-                  <span>
-                    <strong>{x.name}</strong>
-                    <small>
-                      {x.currency} · Opening ¥{x.openingBalance.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
-                      {' · '}
-                      {x.includeInNetWorth ? 'Net assets' : 'Spending only'}
-                    </small>
-                  </span>
-                  <em>{x.balance.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</em>
-                </button>
-                <button
-                  className="account-delete-button" style={{marginLeft:"auto",flexShrink:0}}
-                  onClick={()=>deleteAccount(x)}
-                  aria-label={`Delete ${x.name}`}
-                >
-                  ×
+                  Edit
                 </button>
               </div>
-            )}
-          <button className="atelier-add" onClick={addAccount}><Plus size={15}/> Add account</button>
+            ))}
+
+            <button className="atelier-add" onClick={openAddAccount}><Plus size={15}/> Add account</button>
 
             {categories.map(x=><div className="atelier-row" key={x.id}><span>{x.name}</span><em>{x.flow==='expense'?'Expense':'Income'}</em></div>)}
       <button className="atelier-add" onClick={addCategory}><Plus size={15}/> Add category</button>
@@ -169,6 +399,5 @@ export function Settings() {
       <button className="data-action" onClick={backup}><Download size={15}/> Export backup</button>
       <button className="data-action" onClick={()=>fileRef.current?.click()}><Upload size={15}/> Restore backup</button>
       <input ref={fileRef} type="file" accept="application/json" hidden onChange={e=>{const f=e.target.files?.[0];if(f)restore(f).catch(err=>alert(err.message))}}/>
-    </div>
-  </section>;
+    </div></section>;
 }
