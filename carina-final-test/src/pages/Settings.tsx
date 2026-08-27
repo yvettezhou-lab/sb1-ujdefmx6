@@ -23,19 +23,85 @@ export function Settings() {
   async function addAccount(){
     const name=prompt('Account name');
     if(!name?.trim()) return;
-    const opening = prompt('Opening balance (optional)', '0');
-    const openingBalance = opening?.trim() ? Number(opening) : 0;
-    if(!Number.isFinite(openingBalance)) { alert('Opening balance must be a number.'); return; }
-    await db.accounts.add({id:uid(),name:name.trim(),currency:'CNY',kind:'other',openingBalance,includeInNetWorth:true,sortOrder:Date.now(),isArchived:false});
+
+    const opening=prompt('Opening balance (optional)','0');
+    const openingBalance=opening?.trim() ? Number(opening) : 0;
+    if(!Number.isFinite(openingBalance)){
+      alert('Opening balance must be a number.');
+      return;
+    }
+
+    const includeInNetWorth=confirm(
+      'Include this account in net assets?\n\nOK = include in net assets\nCancel = spending-only account (e.g. credit card)'
+    );
+
+    const kindInput=prompt(
+      'Account type: card / bank / cash / wallet / other',
+      'other'
+    );
+    const kind=(kindInput?.trim() || 'other') as Account['kind'];
+
+    await db.accounts.add({
+      id:uid(),
+      name:name.trim(),
+      currency:'CNY',
+      kind,
+      openingBalance,
+      includeInNetWorth,
+      sortOrder:Date.now(),
+      isArchived:false
+    });
+
     await refresh();
   }
 
   async function editOpeningBalance(account: Account & { balance:number }){
-    const value = prompt(`Opening balance for ${account.name}`, String(account.openingBalance));
-    if(value === null) return;
-    const openingBalance = Number(value);
-    if(!Number.isFinite(openingBalance)) { alert('Opening balance must be a number.'); return; }
-    await db.accounts.update(account.id, { openingBalance });
+    const value=prompt(
+      `Opening balance for ${account.name}`,
+      String(account.openingBalance)
+    );
+    if(value===null) return;
+
+    const openingBalance=Number(value);
+    if(!Number.isFinite(openingBalance)){
+      alert('Opening balance must be a number.');
+      return;
+    }
+
+    await db.accounts.update(account.id,{openingBalance});
+    await refresh();
+  }
+
+  async function editAccount(account: Account & { balance:number }){
+    const name=prompt('Account name',account.name);
+    if(name===null || !name.trim()) return;
+
+    const includeInNetWorth=confirm(
+      `Include "${name.trim()}" in net assets?\n\nOK = yes\nCancel = spending-only account`
+    );
+
+    const kindInput=prompt(
+      'Account type: card / bank / cash / wallet / other',
+      account.kind || 'other'
+    );
+    const kind=kindInput?.trim() || account.kind || 'other';
+
+    await db.accounts.update(account.id,{
+      name:name.trim(),
+        kind: kind as Account['kind'],
+      includeInNetWorth
+    });
+
+    await refresh();
+  }
+
+  async function deleteAccount(account: Account){
+    const confirmed=confirm(
+      `Delete account "${account.name}"?\n\nHistorical transactions will NOT be deleted.`
+    );
+    if(!confirmed) return;
+
+    await db.accounts.update(account.id,{isArchived:true});
     await refresh();
   }
   async function addCategory(){
@@ -61,13 +127,33 @@ export function Settings() {
 
     <div className="atelier-section">
       <div className="atelier-title"><Wallet size={17}/><div><span>ACCOUNTS</span><small>Where your money lives</small></div></div>
-      {accounts.map(x=><button className="atelier-row account-row account-edit-row" key={x.id} onClick={()=>editOpeningBalance(x)}><span><strong>{x.name}</strong><small>{x.currency} · Opening ¥{x.openingBalance.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</small></span><em>¥{x.balance.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</em></button>)}
-      <button className="atelier-add" onClick={addAccount}><Plus size={15}/> Add account</button>
-    </div>
+      {accounts.map(x=>
+              <div className="account-edit-row" key={x.id}>
+                <button
+                  className="atelier-row account-row"
+                  onClick={()=>editAccount(x)}
+                >
+                  <span>
+                    <strong>{x.name}</strong>
+                    <small>
+                      {x.currency} · Opening ¥{x.openingBalance.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
+                      {' · '}
+                      {x.includeInNetWorth ? 'Net assets' : 'Spending only'}
+                    </small>
+                  </span>
+                  <em>{x.balance.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</em>
+                </button>
+                <button
+                  className="account-delete-button"
+                  onClick={()=>deleteAccount(x)}
+                  aria-label={`Delete ${x.name}`}
+                >
+                  ×
+                </button>
+              </div>
+            )}
 
-    <div className="atelier-section">
-      <div className="atelier-title"><Tags size={17}/><div><span>CATEGORIES</span><small>How your spending is named</small></div></div>
-      {categories.map(x=><div className="atelier-row" key={x.id}><span>{x.name}</span><em>{x.flow==='expense'?'Expense':'Income'}</em></div>)}
+            {categories.map(x=><div className="atelier-row" key={x.id}><span>{x.name}</span><em>{x.flow==='expense'?'Expense':'Income'}</em></div>)}
       <button className="atelier-add" onClick={addCategory}><Plus size={15}/> Add category</button>
     </div>
 
