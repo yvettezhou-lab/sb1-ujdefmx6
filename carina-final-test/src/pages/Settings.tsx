@@ -128,7 +128,7 @@ export function Settings() {
     <div className="atelier-section">
       <div className="atelier-title"><Wallet size={17}/><div><span>ACCOUNTS</span><small>Where your money lives</small></div></div>
       {accounts.map(x=>
-              <div className="account-edit-row" key={x.id}>
+              <div className="account-edit-row" style={{display:"flex",alignItems:"center",width:"100%"}} key={x.id}>
                 <button
                   className="atelier-row account-row"
                   onClick={()=>editAccount(x)}
@@ -144,7 +144,7 @@ export function Settings() {
                   <em>{x.balance.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</em>
                 </button>
                 <button
-                  className="account-delete-button"
+                  className="account-delete-button" style={{marginLeft:"auto",flexShrink:0}}
                   onClick={()=>deleteAccount(x)}
                   aria-label={`Delete ${x.name}`}
                 >
@@ -152,6 +152,7 @@ export function Settings() {
                 </button>
               </div>
             )}
+          <button className="atelier-add" onClick={addAccount}><Plus size={15}/> Add account</button>
 
             {categories.map(x=><div className="atelier-row" key={x.id}><span>{x.name}</span><em>{x.flow==='expense'?'Expense':'Income'}</em></div>)}
       <button className="atelier-add" onClick={addCategory}><Plus size={15}/> Add category</button>
