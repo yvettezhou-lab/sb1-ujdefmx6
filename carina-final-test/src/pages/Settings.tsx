@@ -96,7 +96,24 @@ async function deleteAccountEditor(account: Account){
     await refresh();
 }
 
-async function addCategory(){
+async function moveAccount(accountId: string, direction: -1 | 1) {
+    const index = accounts.findIndex(a => a.id === accountId);
+    const targetIndex = index + direction;
+    if (index < 0 || targetIndex < 0 || targetIndex >= accounts.length) return;
+
+    const next = [...accounts];
+    [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+
+    await Promise.all(
+      next.map((account, i) =>
+        db.accounts.update(account.id, { sortOrder: i })
+      )
+    );
+
+    await refresh();
+  }
+
+  async function addCategory(){
     const name=prompt('Expense category name');
     if(name?.trim()) { await db.categories.add({id:uid(),name:name.trim(),flow:'expense',sortOrder:Date.now(),isArchived:false}); refresh(); }
   }
@@ -363,9 +380,50 @@ return <section>
 
                 <button
                   type="button"
-                  onClick={()=>openEditAccount(x)}
+                  onClick={() => moveAccount(x.id, -1)}
+                  disabled={accounts.findIndex(a => a.id === x.id) === 0}
+                  aria-label={`Move ${x.name} up`}
                   style={{
-                    marginLeft:"20px",
+                    marginLeft:"16px",
+                    flexShrink:0,
+                    border:0,
+                    background:"transparent",
+                    color:"inherit",
+                    font:"inherit",
+                    fontSize:"13px",
+                    opacity:accounts.findIndex(a => a.id === x.id) === 0 ? .2 : .58,
+                    cursor:"pointer",
+                    padding:"8px 4px"
+                  }}
+                >
+                  ↑
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => moveAccount(x.id, 1)}
+                  disabled={accounts.findIndex(a => a.id === x.id) === accounts.length - 1}
+                  aria-label={`Move ${x.name} down`}
+                  style={{
+                    flexShrink:0,
+                    border:0,
+                    background:"transparent",
+                    color:"inherit",
+                    font:"inherit",
+                    fontSize:"13px",
+                    opacity:accounts.findIndex(a => a.id === x.id) === accounts.length - 1 ? .2 : .58,
+                    cursor:"pointer",
+                    padding:"8px 4px"
+                  }}
+                >
+                  ↓
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openEditAccount(x)}
+                  style={{
+                    marginLeft:"8px",
                     flexShrink:0,
                     border:0,
                     background:"transparent",
@@ -382,7 +440,7 @@ return <section>
               </div>
             ))}
 
-            <button className="atelier-add" onClick={openAddAccount}><Plus size={15}/> Add account</button>
+            <button className="atelier-add" onClick={openAddAccount} style={{marginBottom:"24px"}}><Plus size={15}/> Add account</button>
 
             {categories.map(x=><div className="atelier-row" key={x.id}><span>{x.name}</span><em>{x.flow==='expense'?'Expense':'Income'}</em></div>)}
       <button className="atelier-add" onClick={addCategory}><Plus size={15}/> Add category</button>
