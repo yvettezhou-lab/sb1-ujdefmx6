@@ -121,6 +121,21 @@ async function moveAccount(accountId: string, direction: -1 | 1) {
     const name=prompt('Person name');
     if(name?.trim()) { await db.people.add({id:uid(),name:name.trim(),isArchived:false,sortOrder:Date.now()}); refresh(); }
   }
+
+  async function editPerson(person: Person){
+    const name=prompt('Person name',person.name);
+    if(!name?.trim()) return;
+    await db.people.update(person.id,{name:name.trim()});
+    await refresh();
+  }
+
+  async function deletePerson(person: Person){
+    const confirmed=confirm(`Delete person "${person.name}"?\n\nHistorical transactions will NOT be deleted.`);
+    if(!confirmed) return;
+    await db.people.update(person.id,{isArchived:true});
+    await refresh();
+  }
+
   async function backup(){
     const blob=new Blob([await exportBackup()],{type:'application/json'});
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`carina-backup-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href);
@@ -451,7 +466,47 @@ return <section>
 
     <div className="atelier-section">
       <div className="atelier-title"><Users size={17}/><div><span>PEOPLE</span><small>Names that matter to your ledger</small></div></div>
-      {people.map(x=><div className="atelier-row" key={x.id}><span>{x.name}</span></div>)}
+      {people.map(x=>(
+              <div className="atelier-row" key={x.id}>
+                <span style={{flex:1,minWidth:0}}>{x.name}</span>
+                <button
+                  type="button"
+                  onClick={()=>editPerson(x)}
+                  style={{
+                    marginLeft:"16px",
+                    flexShrink:0,
+                    border:0,
+                    background:"transparent",
+                    color:"inherit",
+                    font:"inherit",
+                    fontSize:"12px",
+                    opacity:.58,
+                    cursor:"pointer",
+                    padding:"8px 0"
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={()=>deletePerson(x)}
+                  style={{
+                    marginLeft:"12px",
+                    flexShrink:0,
+                    border:0,
+                    background:"transparent",
+                    color:"inherit",
+                    font:"inherit",
+                    fontSize:"12px",
+                    opacity:.58,
+                    cursor:"pointer",
+                    padding:"8px 0"
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
       <button className="atelier-add" onClick={addPerson}><Plus size={15}/> Add person</button>
     </div>
 
