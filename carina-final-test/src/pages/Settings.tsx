@@ -442,7 +442,10 @@ return <section>
 
             <button className="atelier-add" onClick={openAddAccount} style={{marginBottom:"24px"}}><Plus size={15}/> Add account</button>
 
-            {categories.map(x=><div className="atelier-row" key={x.id}><span>{x.name}</span><em>{x.flow==='expense'?'Expense':'Income'}</em></div>)}
+            </div>
+
+      <div className="atelier-section">
+        {categories.map(x=><div className="atelier-row" key={x.id}><span>{x.name}</span><em>{x.flow==='expense'?'Expense':'Income'}</em></div>)}
       <button className="atelier-add" onClick={addCategory}><Plus size={15}/> Add category</button>
     </div>
 
