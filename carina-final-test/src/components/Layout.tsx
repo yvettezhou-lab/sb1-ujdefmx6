@@ -1,4 +1,4 @@
-import quillGold from '@/assets/quill-gold.png';
+import quillGold from '@/assets/quill-gold.png?inline';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { BookOpen, Home, Compass, Feather, Sparkles } from 'lucide-react';
 import QuillIcon from '@/components/QuillIcon';
