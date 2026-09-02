@@ -158,7 +158,7 @@ export function Reflection() {
         <div><span>NET FLOW</span><strong className={data.netFlow >= 0 ? 'positive' : 'negative'}>{data.netFlow >= 0 ? '+' : '−'} ¥{Math.abs(data.netFlow).toFixed(2)}</strong></div>
       </div>
 
-      <div className="reflection-mode" role="tablist" aria-label="Reflection analysis">
+      <div className="reflection-mode" style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",whiteSpace:"nowrap"}} role="tablist" aria-label="Reflection analysis">
         {([['category', 'Category'], ['account', 'Account'], ['person', 'Person'], ['trend', 'Trend']] as const).map(([value, label]) => (
           <button key={value} role="tab" aria-selected={mode === value} className={mode === value ? 'active' : ''} onClick={() => selectMode(value)}>{label}</button>
         ))}
