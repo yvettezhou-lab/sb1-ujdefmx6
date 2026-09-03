@@ -221,3 +221,13 @@ a:has(img[src*="feather.png"]) img {
   object-fit: contain;
   transform: scale(1.15);
 }
+
+.quick-advance-checkbox{
+  width:14px !important;
+  height:14px !important;
+  min-width:14px !important;
+  min-height:14px !important;
+  margin:0 !important;
+  padding:0 !important;
+  flex:0 0 14px !important;
+}
