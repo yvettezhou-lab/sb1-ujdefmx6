@@ -196,7 +196,7 @@ export function Reflection() {
                   <strong>{selectedName}</strong>
                 </div>
                 <span>
-                  <b className="positive">+¥{Math.abs(selectedTransactions.filter((t) => t.flow === 'income').reduce((sum, t) => sum + t.amount, 0)).toFixed(2)}</b>{' '}
+                  <b className="positive">+¥{Math.abs(selectedTransactions.filter((t) => t.flow === 'income' && t.kind !== 'reimbursement').reduce((sum, t) => sum + t.amount, 0)).toFixed(2)}</b>{' '}
                   <b>−¥{selectedTransactions.filter((t) => t.flow === 'expense').reduce((sum, t) => sum + t.amount, 0).toFixed(2)}</b>
                 </span>
               </div>
