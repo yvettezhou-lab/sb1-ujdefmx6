@@ -75,7 +75,7 @@ export function buildReflectionData(
 ): ReflectionData {
   const current = monthTransactions(transactions, year, month);
   const income = current
-    .filter((t) => t.flow === 'income')
+    .filter((t) => t.flow === 'income' && t.kind !== 'reimbursement')
     .reduce((sum, t) => sum + t.amount, 0);
   const expense = current
     .filter((t) => t.flow === 'expense')
@@ -90,7 +90,7 @@ export function buildReflectionData(
     return {
       key: `${d.getFullYear()}-${d.getMonth()}`,
       label: d.toLocaleDateString('en-US', { month: 'short' }),
-      income: rows.filter((t) => t.flow === 'income').reduce((sum, t) => sum + t.amount, 0),
+      income: rows.filter((t) => t.flow === 'income' && t.kind !== 'reimbursement').reduce((sum, t) => sum + t.amount, 0),
       expense: rows.filter((t) => t.flow === 'expense').reduce((sum, t) => sum + t.amount, 0),
     };
   });
@@ -124,5 +124,5 @@ export function filterReflectionTrendTransactions(
   const year = Number(yearText);
   const month = Number(monthText);
   if (!Number.isInteger(year) || !Number.isInteger(month)) return [];
-  return monthTransactions(transactions, year, month).filter((t) => t.flow === 'income' || t.flow === 'expense');
+  return monthTransactions(transactions, year, month).filter((t) => t.flow === 'income' && t.kind !== 'reimbursement' || t.flow === 'expense');
 }
