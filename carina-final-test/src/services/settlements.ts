@@ -40,6 +40,27 @@ export async function settleAdvances(i:{
   const expectedAmount=selected.reduce((sum,x)=>sum+x.amount,0);
   const difference=i.receivedAmount-expectedAmount;
   const now=Date.now();
+
+    let autoDifferenceCategoryId:string|undefined;
+    if(difference!==0){
+      const flow=difference>0?'income':'expense';
+      const existing=await db.categories
+        .filter(c=>c.flow===flow && c.name==='代付差额' && !c.isArchived)
+        .first();
+
+      if(existing){
+        autoDifferenceCategoryId=existing.id;
+      }else{
+        autoDifferenceCategoryId=uid();
+        await db.categories.add({
+          id:autoDifferenceCategoryId,
+          name:'代付差额',
+          flow,
+          sortOrder:999,
+          isArchived:false,
+        });
+      }
+    }
   const dateTime=i.dateTime??now;
   const settlementId=uid();
 
@@ -112,7 +133,7 @@ export async function settleAdvances(i:{
           description:'代付结算收益',
           amount:difference,
           accountId:i.accountId,
-          categoryId:i.differenceCategoryId,
+          categoryId:autoDifferenceCategoryId!,
           personId:i.personId,
           flow:'income',
           dateTime,
@@ -135,7 +156,7 @@ export async function settleAdvances(i:{
         expectedAmount,
         receivedAmount:i.receivedAmount,
         difference,
-        differenceCategoryId:i.differenceCategoryId,
+        differenceCategoryId:autoDifferenceCategoryId,
         dateTime,
         createdAt:now,
       };

@@ -8,6 +8,7 @@ const navItems = [
   { to: '/transactions', label: 'Ledger', icon: BookOpen },
   { to: '/reflection', label: 'Reflection', icon: Compass },
   { to: '/settings', label: 'Atelier', icon: Sparkles },
+  { to: '/settlement', label: 'Settlement', icon: Feather },
 ];
 
 export function Layout() {
