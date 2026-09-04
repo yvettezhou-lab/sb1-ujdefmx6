@@ -231,3 +231,44 @@ a:has(img[src*="feather.png"]) img {
   padding:0 !important;
   flex:0 0 14px !important;
 }
+
+/* Quick Entry: Date / Time / Advance */
+.quick-form .smart-grid:has(#quick-advance-toggle) {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr) 72px;
+  gap: 8px;
+  align-items: end;
+}
+
+.quick-form .smart-grid:has(#quick-advance-toggle) > label {
+  margin-bottom: 0;
+}
+
+.quick-form .smart-grid:has(#quick-advance-toggle) > label:last-child {
+  grid-column: auto;
+}
+
+.quick-form #quick-advance-toggle {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  min-height: 18px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  appearance: auto;
+}
+
+@media (max-width:430px) {
+  .quick-form .smart-grid:has(#quick-advance-toggle) {
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr) 64px;
+  }
+}
+
+/* Fix Advance checkbox touch target */
+.quick-form #quick-advance-toggle{
+  position:relative!important;
+  z-index:999!important;
+  pointer-events:auto!important;
+  touch-action:manipulation!important;
+}
