@@ -117,20 +117,35 @@ export function Settlement() {
       </div>
 
       <div className="settings-form">
-        <label>
-          人物
-          <select
-            value={selectedPersonId}
-            onChange={e => setSelectedPersonId(e.target.value)}
-          >
-            <option value="">请选择人物</option>
+        <div className="settings-field">
+          <span className="settings-label">人物</span>
+          <div style={{display:"flex",flexWrap:"wrap",gap:"8px"}}>
             {people.map(person => (
-              <option key={person.id} value={person.id}>
+              <button
+                key={person.id}
+                type="button"
+                onClick={() => setSelectedPersonId(person.id)}
+                style={{
+                  padding:"7px 14px",
+                  borderRadius:"999px",
+                  border:selectedPersonId===person.id
+                    ? "1px solid var(--gold)"
+                    : "1px solid var(--line)",
+                  background:selectedPersonId===person.id
+                    ? "var(--ink)"
+                    : "rgba(255,255,255,.45)",
+                  color:selectedPersonId===person.id
+                    ? "#fff"
+                    : "var(--ink)",
+                  cursor:"pointer",
+                  transition:"all .18s ease"
+                }}
+              >
                 {person.name}
-              </option>
+              </button>
             ))}
-          </select>
-        </label>
+          </div>
+        </div>
 
         <div style={{ marginTop: 16 }}>
           <strong>待结算代付</strong>
