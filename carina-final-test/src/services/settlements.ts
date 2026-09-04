@@ -57,7 +57,7 @@ export async function settleAdvances(i:{
         const reimbursement:Transaction={
           id:uid(),
           description:'代付结算本金',
-          amount:i.receivedAmount,
+          amount:Math.min(i.receivedAmount,expectedAmount),
           accountId:i.accountId,
           categoryId:'',
           personId:i.personId,
