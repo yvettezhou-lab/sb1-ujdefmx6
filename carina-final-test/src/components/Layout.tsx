@@ -1,4 +1,4 @@
-import quillGold from '@/assets/quill-gold.png';
+import quillGold from '@/assets/quill-gold.png?inline';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { BookOpen, Home, Compass, Feather, Sparkles } from 'lucide-react';
 import QuillIcon from '@/components/QuillIcon';
@@ -8,6 +8,7 @@ const navItems = [
   { to: '/transactions', label: 'Ledger', icon: BookOpen },
   { to: '/reflection', label: 'Reflection', icon: Compass },
   { to: '/settings', label: 'Atelier', icon: Sparkles },
+  { to: '/settlement', label: 'Settlement', icon: Feather },
 ];
 
 export function Layout() {

@@ -96,7 +96,24 @@ async function deleteAccountEditor(account: Account){
     await refresh();
 }
 
-async function addCategory(){
+async function moveAccount(accountId: string, direction: -1 | 1) {
+    const index = accounts.findIndex(a => a.id === accountId);
+    const targetIndex = index + direction;
+    if (index < 0 || targetIndex < 0 || targetIndex >= accounts.length) return;
+
+    const next = [...accounts];
+    [next[index], next[targetIndex]] = [next[targetIndex], next[index]];
+
+    await Promise.all(
+      next.map((account, i) =>
+        db.accounts.update(account.id, { sortOrder: i })
+      )
+    );
+
+    await refresh();
+  }
+
+  async function addCategory(){
     const name=prompt('Expense category name');
     if(name?.trim()) { await db.categories.add({id:uid(),name:name.trim(),flow:'expense',sortOrder:Date.now(),isArchived:false}); refresh(); }
   }
@@ -104,6 +121,21 @@ async function addCategory(){
     const name=prompt('Person name');
     if(name?.trim()) { await db.people.add({id:uid(),name:name.trim(),isArchived:false,sortOrder:Date.now()}); refresh(); }
   }
+
+  async function editPerson(person: Person){
+    const name=prompt('Person name',person.name);
+    if(!name?.trim()) return;
+    await db.people.update(person.id,{name:name.trim()});
+    await refresh();
+  }
+
+  async function deletePerson(person: Person){
+    const confirmed=confirm(`Delete person "${person.name}"?\n\nHistorical transactions will NOT be deleted.`);
+    if(!confirmed) return;
+    await db.people.update(person.id,{isArchived:true});
+    await refresh();
+  }
+
   async function backup(){
     const blob=new Blob([await exportBackup()],{type:'application/json'});
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`carina-backup-${new Date().toISOString().slice(0,10)}.json`; a.click(); URL.revokeObjectURL(a.href);
@@ -363,9 +395,50 @@ return <section>
 
                 <button
                   type="button"
-                  onClick={()=>openEditAccount(x)}
+                  onClick={() => moveAccount(x.id, -1)}
+                  disabled={accounts.findIndex(a => a.id === x.id) === 0}
+                  aria-label={`Move ${x.name} up`}
                   style={{
-                    marginLeft:"20px",
+                    marginLeft:"16px",
+                    flexShrink:0,
+                    border:0,
+                    background:"transparent",
+                    color:"inherit",
+                    font:"inherit",
+                    fontSize:"13px",
+                    opacity:accounts.findIndex(a => a.id === x.id) === 0 ? .2 : .58,
+                    cursor:"pointer",
+                    padding:"8px 4px"
+                  }}
+                >
+                  ↑
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => moveAccount(x.id, 1)}
+                  disabled={accounts.findIndex(a => a.id === x.id) === accounts.length - 1}
+                  aria-label={`Move ${x.name} down`}
+                  style={{
+                    flexShrink:0,
+                    border:0,
+                    background:"transparent",
+                    color:"inherit",
+                    font:"inherit",
+                    fontSize:"13px",
+                    opacity:accounts.findIndex(a => a.id === x.id) === accounts.length - 1 ? .2 : .58,
+                    cursor:"pointer",
+                    padding:"8px 4px"
+                  }}
+                >
+                  ↓
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => openEditAccount(x)}
+                  style={{
+                    marginLeft:"8px",
                     flexShrink:0,
                     border:0,
                     background:"transparent",
@@ -382,15 +455,58 @@ return <section>
               </div>
             ))}
 
-            <button className="atelier-add" onClick={openAddAccount}><Plus size={15}/> Add account</button>
+            <button className="atelier-add" onClick={openAddAccount} style={{marginBottom:"24px"}}><Plus size={15}/> Add account</button>
 
-            {categories.map(x=><div className="atelier-row" key={x.id}><span>{x.name}</span><em>{x.flow==='expense'?'Expense':'Income'}</em></div>)}
+            </div>
+
+      <div className="atelier-section">
+        {categories.map(x=><div className="atelier-row" key={x.id}><span>{x.name}</span><em>{x.flow==='expense'?'Expense':'Income'}</em></div>)}
       <button className="atelier-add" onClick={addCategory}><Plus size={15}/> Add category</button>
     </div>
 
     <div className="atelier-section">
       <div className="atelier-title"><Users size={17}/><div><span>PEOPLE</span><small>Names that matter to your ledger</small></div></div>
-      {people.map(x=><div className="atelier-row" key={x.id}><span>{x.name}</span></div>)}
+      {people.map(x=>(
+              <div className="atelier-row" key={x.id}>
+                <span style={{flex:1,minWidth:0}}>{x.name}</span>
+                <button
+                  type="button"
+                  onClick={()=>editPerson(x)}
+                  style={{
+                    marginLeft:"16px",
+                    flexShrink:0,
+                    border:0,
+                    background:"transparent",
+                    color:"inherit",
+                    font:"inherit",
+                    fontSize:"12px",
+                    opacity:.58,
+                    cursor:"pointer",
+                    padding:"8px 0"
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={()=>deletePerson(x)}
+                  style={{
+                    marginLeft:"12px",
+                    flexShrink:0,
+                    border:0,
+                    background:"transparent",
+                    color:"inherit",
+                    font:"inherit",
+                    fontSize:"12px",
+                    opacity:.58,
+                    cursor:"pointer",
+                    padding:"8px 0"
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
       <button className="atelier-add" onClick={addPerson}><Plus size={15}/> Add person</button>
     </div>
 

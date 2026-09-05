@@ -14,6 +14,10 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg'],
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
+          maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        },
       manifest: {
         name: 'Carina',
         short_name: 'Carina',

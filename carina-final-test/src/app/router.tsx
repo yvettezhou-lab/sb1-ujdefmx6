@@ -8,6 +8,7 @@ import { EditTransaction } from '@/pages/EditTransaction';
 import { Transfer } from '@/pages/Transfer';
 import { TransferDetail } from '@/pages/TransferDetail';
 import { Reflection } from '@/pages/Reflection';
+import { Settlement } from '@/pages/Settlement';
 
 export const router = createBrowserRouter([
   { path: '/quick-entry', element: <QuickEntry /> },
@@ -20,6 +21,7 @@ export const router = createBrowserRouter([
       { path: '/', element: <Dashboard /> },
       { path: '/transactions', element: <Transactions /> },
       { path: '/reflection', element: <Reflection /> },
+        { path: '/settlement', element: <Settlement /> },
       { path: '/settings', element: <Settings /> },
       { path: '*', element: <Navigate to="/" replace /> }
     ]

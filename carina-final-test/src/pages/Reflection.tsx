@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '@/database/db';
-import type { Account, Category, Transaction } from '@/models';
-import { buildReflectionData, filterReflectionTransactions, filterReflectionTrendTransactions, type ReflectionMode } from '@/services/statistics';
+import type { Account, Category, Person, Transaction } from '@/models';
+import { buildReflectionData, filterReflectionTransactions, filterReflectionTrendTransactions } from '@/services/statistics';
 import { ReflectionChart } from '@/components/ReflectionChart';
+
+type ReflectionMode = 'category' | 'account' | 'person' | 'trend';
 
 export function Reflection() {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [people, setPeople] = useState<Person[]>([]);
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -20,11 +23,12 @@ export function Reflection() {
 
   useEffect(() => {
     let alive = true;
-    Promise.all([db.transactions.toArray(), db.categories.toArray(), db.accounts.toArray()]).then(([tx, cats, accts]) => {
+    Promise.all([db.transactions.toArray(), db.categories.toArray(), db.accounts.toArray(), db.people.toArray()]).then(([tx, cats, accts, ppl]) => {
       if (!alive) return;
       setTransactions(tx);
       setCategories(cats);
       setAccounts(accts);
+      setPeople(ppl);
     });
 
 
@@ -36,12 +40,71 @@ export function Reflection() {
     [transactions, categories, accounts, year, month],
   );
 
+  const personData = useMemo(() => {
+    const start = new Date(year, month, 1);
+    const end = new Date(year, month + 1, 1);
+    const totals = new Map<string, number>();
+
+    transactions.forEach((transaction) => {
+      const date = new Date(transaction.dateTime);
+      if (transaction.flow === 'expense' && date >= start && date < end) {
+        const id = transaction.personId || '__none__';
+        totals.set(id, (totals.get(id) || 0) + transaction.amount);
+      }
+    });
+
+    const result = people
+      .map((person) => ({
+        id: person.id,
+        name: person.name,
+        amount: totals.get(person.id) || 0,
+      }))
+      .filter((item) => item.amount > 0);
+
+    const noPersonAmount = totals.get('__none__') || 0;
+    if (noPersonAmount > 0) {
+      result.push({
+        id: '__none__',
+        name: 'No person',
+        amount: noPersonAmount,
+      });
+    }
+
+    return result.sort((a, b) => b.amount - a.amount);
+  }, [transactions, people, year, month]);
+
   const title = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  const currentList = mode === 'category' ? data.category : mode === 'account' ? data.account : data.trend;
+  const currentList = mode === 'category'
+    ? data.category
+    : mode === 'account'
+      ? data.account
+      : mode === 'person'
+        ? personData
+        : data.trend;
 
   const selectedTransactions = useMemo(() => {
     if (!selectedId) return [];
-    if (mode === 'trend') return filterReflectionTrendTransactions(transactions, selectedId);
+
+    if (mode === 'trend') {
+      return filterReflectionTrendTransactions(transactions, selectedId);
+    }
+
+    if (mode === 'person') {
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month + 1, 1);
+
+      return transactions.filter((transaction) => {
+        const date = new Date(transaction.dateTime);
+        const matchesMonth = date >= start && date < end;
+        const matchesPerson =
+          selectedId === '__none__'
+            ? !transaction.personId
+            : transaction.personId === selectedId;
+
+        return matchesMonth && transaction.flow === 'expense' && matchesPerson;
+      });
+    }
+
     return filterReflectionTransactions(transactions, year, month, mode, selectedId);
   }, [transactions, year, month, mode, selectedId]);
 
@@ -77,7 +140,9 @@ export function Reflection() {
       ? data.category.find((item) => item.id === selectedId)?.name
       : mode === 'account'
         ? data.account.find((item) => item.id === selectedId)?.name
-        : data.trend.find((item) => item.key === selectedId)?.label
+        : mode === 'person'
+          ? personData.find((item) => item.id === selectedId)?.name
+          : data.trend.find((item) => item.key === selectedId)?.label
     : undefined;
 
   return (
@@ -93,15 +158,15 @@ export function Reflection() {
         <div><span>NET FLOW</span><strong className={data.netFlow >= 0 ? 'positive' : 'negative'}>{data.netFlow >= 0 ? '+' : '−'} ¥{Math.abs(data.netFlow).toFixed(2)}</strong></div>
       </div>
 
-      <div className="reflection-mode" role="tablist" aria-label="Reflection analysis">
-        {([['category', 'Category'], ['account', 'Account'], ['trend', 'Trend']] as const).map(([value, label]) => (
+      <div className="reflection-mode" style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",whiteSpace:"nowrap"}} role="tablist" aria-label="Reflection analysis">
+        {([['category', 'Category'], ['account', 'Account'], ['person', 'Person'], ['trend', 'Trend']] as const).map(([value, label]) => (
           <button key={value} role="tab" aria-selected={mode === value} className={mode === value ? 'active' : ''} onClick={() => selectMode(value)}>{label}</button>
         ))}
       </div>
 
       <div className="paper-panel reflection-analysis">
-        <div className="panel-kicker">{mode === 'category' ? 'WHERE YOUR LIFE FLOWS' : mode === 'account' ? 'WHERE MONEY MOVES' : 'THE LAST SIX MONTHS'}</div>
-        <h2>{mode === 'category' ? 'Spending by category' : mode === 'account' ? 'Spending by account' : 'Money in motion'}</h2>
+        <div className="panel-kicker">{mode === 'category' ? 'WHERE YOUR LIFE FLOWS' : mode === 'account' ? 'WHERE MONEY MOVES' : mode === 'person' ? 'WHO BENEFITS' : 'THE LAST SIX MONTHS'}</div>
+        <h2>{mode === 'category' ? 'Spending by category' : mode === 'account' ? 'Spending by account' : mode === 'person' ? 'Spending by person' : 'Money in motion'}</h2>
         {mode === 'trend' ? (
           <ReflectionChart
             mode="trend"
@@ -131,7 +196,7 @@ export function Reflection() {
                   <strong>{selectedName}</strong>
                 </div>
                 <span>
-                  <b className="positive">+¥{Math.abs(selectedTransactions.filter((t) => t.flow === 'income').reduce((sum, t) => sum + t.amount, 0)).toFixed(2)}</b>{' '}
+                  <b className="positive">+¥{Math.abs(selectedTransactions.filter((t) => t.flow === 'income' && t.kind !== 'reimbursement').reduce((sum, t) => sum + t.amount, 0)).toFixed(2)}</b>{' '}
                   <b>−¥{selectedTransactions.filter((t) => t.flow === 'expense').reduce((sum, t) => sum + t.amount, 0).toFixed(2)}</b>
                 </span>
               </div>

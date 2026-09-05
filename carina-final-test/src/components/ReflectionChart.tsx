@@ -1,7 +1,7 @@
 import type { ReflectionBreakdown, ReflectionTrendPoint } from '@/services/statistics';
 
 type Props =
-  | { mode: 'category' | 'account'; chartType: 'donut' | 'bar'; data: ReflectionBreakdown[]; selectedId?: string; onSelect: (id: string) => void; onToggleChart: () => void }
+  | { mode: 'category' | 'account' | 'person'; chartType: 'donut' | 'bar'; data: ReflectionBreakdown[]; selectedId?: string; onSelect: (id: string) => void; onToggleChart: () => void }
   | { mode: 'trend'; chartType: 'bar'; data: ReflectionTrendPoint[]; selectedId?: string; onSelect: (id: string) => void; onToggleChart: () => void };
 
 function Donut({ data, selectedId, onSelect, onToggleChart }: { data: ReflectionBreakdown[]; selectedId?: string; onSelect: (id: string) => void; onToggleChart: () => void }) {
