@@ -158,11 +158,23 @@ export function Settlement() {
                 <label
                   key={item.id}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: '10px 0',
-                    borderBottom: '1px solid rgba(0,0,0,.08)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '10px 12px',
+                  marginBottom: 6,
+                  borderRadius: 8,
+                  border: selectedIds.includes(item.id)
+                    ? '1px solid var(--gold)'
+                    : '1px solid rgba(0,0,0,.08)',
+                  background: selectedIds.includes(item.id)
+                    ? 'var(--ink)'
+                    : 'rgba(255,255,255,.45)',
+                  color: selectedIds.includes(item.id)
+                    ? '#fff'
+                    : 'var(--ink)',
+                  cursor: 'pointer',
+                  transition: 'all .18s ease',
                   }}
                 >
                   <input
