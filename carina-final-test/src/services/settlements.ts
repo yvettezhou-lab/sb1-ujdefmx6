@@ -124,7 +124,7 @@ export async function settleAdvances(i:{
        * 3. 多收 / 少收的真正差额。
        */
       if(difference>0){
-        if(!i.differenceCategoryId){
+        if(!autoDifferenceCategoryId){
           throw new Error('多收差额需要选择收入分类');
         }
 
